@@ -9,8 +9,8 @@ POSTING_INTERVAL_MIN = (60, 120)  # 投稿間隔: 60-120分（1-2時間）
 
 # GitHub Actions用設定
 GITHUB_ACTIONS_MODE = True  # GitHub Actions実行モード
-MIN_POSTING_PROBABILITY = 0.3  # 最小投稿確率
-MAX_POSTING_PROBABILITY = 0.8  # 最大投稿確率
+MIN_POSTING_PROBABILITY = 0.5  # 最小投稿確率（30%→50%に変更）
+MAX_POSTING_PROBABILITY = 0.9  # 最大投稿確率（80%→90%に変更）
 
 # ファイル設定
 CSV_FILE = "kindle_unlimited_biz_10_with_links.csv"  # 新しい出力ファイル名
