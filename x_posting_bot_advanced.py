@@ -330,11 +330,15 @@ class XPostingBotAdvanced:
         GitHub Actions対応の投稿判定ロジック
         現在が投稿時間内で、ランダム確率で投稿するかどうかを判定
         """
+        # GitHub ActionsはUTC時間で動作するため、日本時間に変換
         current_hour = datetime.now().hour
+        jst_hour = (current_hour + 9) % 24  # UTC+9で日本時間
         
-        # 投稿時間外の場合は投稿しない
-        if not (self.posting_hours[0] <= current_hour <= self.posting_hours[1]):
-            self.logger.info(f"投稿時間外です（現在: {current_hour}時）")
+        self.logger.info(f"UTC時間: {current_hour}時, 日本時間: {jst_hour}時")
+        
+        # 投稿時間外の場合は投稿しない（日本時間で判定）
+        if not (self.posting_hours[0] <= jst_hour <= self.posting_hours[1]):
+            self.logger.info(f"投稿時間外です（日本時間: {jst_hour}時）")
             return False
         
         # 今日の投稿回数をチェック
@@ -345,8 +349,8 @@ class XPostingBotAdvanced:
             self.logger.info(f"今日の投稿制限に達しています（{today_posts}/{self.posts_per_day}件）")
             return False
         
-        # 残り時間と残り投稿回数で確率を調整
-        remaining_hours = self.posting_hours[1] - current_hour + 1
+        # 残り時間と残り投稿回数で確率を調整（日本時間で計算）
+        remaining_hours = self.posting_hours[1] - jst_hour + 1
         remaining_posts = self.posts_per_day - today_posts
         
         # 効率的な投稿確率計算
@@ -362,7 +366,7 @@ class XPostingBotAdvanced:
         # ランダム判定
         should_post = random.random() < probability
         
-        self.logger.info(f"投稿判定: 現在{current_hour}時, 今日{today_posts}/{self.posts_per_day}件, "
+        self.logger.info(f"投稿判定: 日本時間{jst_hour}時, 今日{today_posts}/{self.posts_per_day}件, "
                         f"残り{remaining_posts}件, 確率{probability:.2f}, 結果{'投稿' if should_post else 'スキップ'}")
         
         return should_post

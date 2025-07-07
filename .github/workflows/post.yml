@@ -4,6 +4,7 @@ on:
   schedule:
     # 9時から22時まで毎時実行（日本時間）
     - cron: '0 0-13 * * *'  # UTC 0-13時 = JST 9-22時
+    # 注意: GitHub ActionsはUTC時間で動作します
   workflow_dispatch:  # 手動実行も可能
 
 # ワークフロー全体の権限設定
