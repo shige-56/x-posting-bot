@@ -6,6 +6,11 @@ on:
     - cron: '0 0-13 * * *'  # UTC 0-13時 = JST 9-22時
   workflow_dispatch:  # 手動実行も可能
 
+# ワークフロー全体の権限設定
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   post:
     runs-on: ubuntu-latest
@@ -35,15 +40,10 @@ jobs:
       run: |
         python x_posting_bot_advanced.py
         
-    - name: Commit posting history
+    - name: Commit and push posting history
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         git add posting_history.json x_bot.log
         git diff --quiet && git diff --staged --quiet || git commit -m "Update posting history - $(date)"
-        
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }} 
+        git push 
