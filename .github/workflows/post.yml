@@ -45,7 +45,7 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add posting_history.json x_bot.log
+        git add posting_history.json
         git diff --quiet && git diff --staged --quiet || git commit -m "Update posting history - $(date)"
-        git pull --rebase origin main
+        git pull --rebase origin main || git pull origin main --allow-unrelated-histories
         git push 
