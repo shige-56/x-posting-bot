@@ -12,6 +12,10 @@ GITHUB_ACTIONS_MODE = True  # GitHub Actions実行モード
 MIN_POSTING_PROBABILITY = 0.5  # 最小投稿確率（30%→50%に変更）
 MAX_POSTING_PROBABILITY = 0.9  # 最大投稿確率（80%→90%に変更）
 
+# テスト用設定（開発時のみ使用）
+TEST_POSTING_HOURS = (0, 23)  # テスト用: 0:00-23:00（全時間）
+TEST_POSTS_PER_DAY = 999  # テスト用: 大量の投稿制限
+
 # ファイル設定
 CSV_FILE = "kindle_unlimited_biz_10_with_links.csv"  # 新しい出力ファイル名
 POSTING_HISTORY_FILE = "posting_history.json"

@@ -21,6 +21,13 @@ except ImportError:
         print("設定ファイルが見つかりません。")
         exit(1)
 
+# テスト用設定のインポート
+try:
+    from x_bot_config_github import TEST_POSTING_HOURS, TEST_POSTS_PER_DAY
+except ImportError:
+    TEST_POSTING_HOURS = (0, 23)
+    TEST_POSTS_PER_DAY = 999
+
 class XPostingBotAdvanced:
     def __init__(self):
         """
@@ -45,6 +52,15 @@ class XPostingBotAdvanced:
         
         # 先にログ設定
         self.setup_logging()
+        
+        # テスト用設定の確認
+        test_mode_env = os.getenv('TEST_MODE', 'false').lower()
+        if test_mode_env == 'true':
+            # テストモードでは投稿時間制限を外す
+            self.posting_hours = TEST_POSTING_HOURS
+            self.posts_per_day = POSTS_PER_DAY  # 本番と同じ9回制限
+            self.test_mode = True
+            self.logger.info("テストモードが有効です（投稿時間制限なし、9回制限あり）")
         
         # 投稿履歴を読み込み
         self.posting_history = self.load_posting_history()
@@ -157,8 +173,28 @@ class XPostingBotAdvanced:
         try:
             with open(self.posting_history_file, 'w', encoding='utf-8') as f:
                 json.dump(self.posting_history, f, ensure_ascii=False, indent=2)
+            self.logger.info(f"投稿履歴を保存しました: {len(self.posting_history)}件")
         except Exception as e:
             self.logger.error(f"投稿履歴保存エラー: {e}")
+    
+    def add_to_posting_history(self, post_data):
+        """
+        投稿履歴に追加
+        """
+        today = datetime.now().strftime('%Y-%m-%d')
+        index_str = str(post_data['index'])
+        
+        # 重複チェック
+        if index_str in self.posting_history and self.posting_history[index_str] == today:
+            self.logger.warning(f"重複投稿を防ぎました: {index_str} (今日既に投稿済み)")
+            return False
+        
+        # 投稿履歴に追加
+        self.posting_history[index_str] = today
+        self.save_posting_history()
+        
+        self.logger.info(f"投稿履歴に追加: {index_str} -> {today}")
+        return True
     
     def load_csv_data(self):
         """
@@ -196,6 +232,13 @@ class XPostingBotAdvanced:
         """
         today = datetime.now().strftime('%Y-%m-%d')
         posted_today = len([k for k, v in self.posting_history.items() if v == today])
+        
+        # デバッグ情報を追加
+        self.logger.info(f"今日({today})の投稿数: {posted_today}件")
+        if posted_today > 0:
+            posted_items = [k for k, v in self.posting_history.items() if v == today]
+            self.logger.info(f"投稿済みアイテム: {posted_items}")
+        
         return posted_today
     
     def get_available_posts(self, available_posts):
@@ -269,10 +312,10 @@ class XPostingBotAdvanced:
                     print("❌ X APIクライアントが初期化されていません")
                     return False
             
-            # 投稿履歴に記録
-            today = current_time.strftime('%Y-%m-%d')
-            self.posting_history[str(post_data['index'])] = today
-            self.save_posting_history()
+            # 新しい履歴管理機能を使用
+            if not self.add_to_posting_history(post_data):
+                self.logger.warning("重複投稿を防ぎました")
+                return False
             
             # 統計情報を更新
             self.stats['total_posts'] += 1
@@ -338,7 +381,8 @@ class XPostingBotAdvanced:
         
         # 投稿時間外の場合は投稿しない（日本時間で判定）
         if not (self.posting_hours[0] <= jst_hour <= self.posting_hours[1]):
-            self.logger.info(f"投稿時間外です（日本時間: {jst_hour}時）")
+            self.logger.info(f"投稿時間外です（日本時間: {jst_hour}時、投稿時間: {self.posting_hours[0]}-{self.posting_hours[1]}時）")
+            print(f"⏭️ 投稿時間外（日本時間: {jst_hour}時）")
             return False
         
         # 今日の投稿回数をチェック
@@ -347,6 +391,7 @@ class XPostingBotAdvanced:
         # 今日の上限に達している場合は投稿しない
         if today_posts >= self.posts_per_day:
             self.logger.info(f"今日の投稿制限に達しています（{today_posts}/{self.posts_per_day}件）")
+            print(f"⏭️ 今日の投稿制限に達しています（{today_posts}/{self.posts_per_day}件）")
             return False
         
         # 残り時間と残り投稿回数で確率を調整（日本時間で計算）
@@ -368,6 +413,11 @@ class XPostingBotAdvanced:
         
         self.logger.info(f"投稿判定: 日本時間{jst_hour}時, 今日{today_posts}/{self.posts_per_day}件, "
                         f"残り{remaining_posts}件, 確率{probability:.2f}, 結果{'投稿' if should_post else 'スキップ'}")
+        
+        if should_post:
+            print(f"✅ 投稿判定: 日本時間{jst_hour}時, 今日{today_posts}/{self.posts_per_day}件, 残り{remaining_posts}件, 確率{probability:.2f}")
+        else:
+            print(f"⏭️ 投稿スキップ: 日本時間{jst_hour}時, 今日{today_posts}/{self.posts_per_day}件, 残り{remaining_posts}件, 確率{probability:.2f}")
         
         return should_post
     
